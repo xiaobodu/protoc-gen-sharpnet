@@ -1,17 +1,20 @@
 package main
 
 import (
+	"io/ioutil"
+	"os"
+	"path"
+
 	"github.com/davyxu/golog"
 	"github.com/davyxu/pbmeta"
 	pbprotos "github.com/davyxu/pbmeta/proto"
 	plugin "github.com/davyxu/pbmeta/proto/compiler"
 	"github.com/golang/protobuf/proto"
-	"io/ioutil"
-	"os"
-	"path"
 )
 
 var log *golog.Logger = golog.New("main")
+
+var use_hasField bool
 
 func main() {
 	gen := New()
@@ -29,6 +32,11 @@ func main() {
 
 	if len(gen.Request.FileToGenerate) == 0 {
 		gen.Fail("no files to generate")
+	}
+
+	// 启用带has字段的生成
+	if gen.Request.GetParameter() == "use_hasfield" {
+		use_hasField = true
 	}
 
 	// 建立解析池

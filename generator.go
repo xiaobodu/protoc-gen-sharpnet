@@ -2,11 +2,11 @@ package main
 
 import (
 	"bytes"
-	plugin "github.com/davyxu/pbmeta/proto/compiler"
-	//	"github.com/golang/protobuf/proto"
 	"fmt"
 	"os"
 	"strings"
+
+	plugin "github.com/davyxu/pbmeta/proto/compiler"
 )
 
 type Generator struct {
@@ -27,8 +27,11 @@ func New() *Generator {
 
 // Error reports a problem, including an error, and exits the program.
 func (self *Generator) Error(err error, msgs ...string) {
-	s := strings.Join(msgs, " ") + ":" + err.Error()
-	log.Errorln("protoc-gen-sharpnet, error:", s)
+	if err != nil {
+		s := strings.Join(msgs, " ") + ":" + err.Error()
+		log.Errorln("protoc-gen-sharpnet, error:", s)
+	}
+
 	os.Exit(1)
 }
 
@@ -51,7 +54,7 @@ func (self *Generator) Print(str ...interface{}) {
 			fmt.Fprintf(self, "%t", s)
 		case *bool:
 			fmt.Fprintf(self, "%t", *s)
-		case int, int32:
+		case int, int32, uint, uint32:
 			fmt.Fprintf(self, "%d", s)
 		case *int32:
 			fmt.Fprintf(self, "%d", *s)
@@ -62,8 +65,8 @@ func (self *Generator) Print(str ...interface{}) {
 		case *float64:
 			fmt.Fprintf(self, "%g", *s)
 		default:
-			panic("here")
 			self.Fail(fmt.Sprintf("unknown type in printer: %T", v))
+			panic("here")
 
 		}
 	}

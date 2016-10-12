@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/davyxu/pbmeta"
-	pbprotos "github.com/davyxu/pbmeta/proto"
 	"strconv"
 	"strings"
+
+	"github.com/davyxu/pbmeta"
+	pbprotos "github.com/davyxu/pbmeta/proto"
 )
 
 func fieldTypeString(fd *pbmeta.FieldDescriptor) string {
@@ -28,6 +29,10 @@ func fieldTypeString(fd *pbmeta.FieldDescriptor) string {
 		ret = "string"
 	case pbprotos.FieldDescriptorProto_TYPE_INT64:
 		ret = "long"
+	case pbprotos.FieldDescriptorProto_TYPE_UINT64:
+		ret = "ulong"
+	case pbprotos.FieldDescriptorProto_TYPE_BYTES:
+		ret = "byte[]"
 	case pbprotos.FieldDescriptorProto_TYPE_ENUM,
 		pbprotos.FieldDescriptorProto_TYPE_MESSAGE:
 		ret = fd.FullTypeName()
@@ -78,6 +83,10 @@ func getDefaultValue(fd *pbmeta.FieldDescriptor) string {
 		return wrapDefaultValue(fd, "double")
 	case pbprotos.FieldDescriptorProto_TYPE_INT64:
 		return wrapDefaultValue(fd, "long")
+	case pbprotos.FieldDescriptorProto_TYPE_UINT64:
+		return wrapDefaultValue(fd, "ulong")
+	case pbprotos.FieldDescriptorProto_TYPE_BYTES:
+		return wrapDefaultValue(fd, "byte[]")
 	case pbprotos.FieldDescriptorProto_TYPE_STRING:
 		v := strings.TrimSpace(fd.DefaultValue())
 		if v != "" {
@@ -87,6 +96,11 @@ func getDefaultValue(fd *pbmeta.FieldDescriptor) string {
 		return strconv.Quote(fd.DefaultValue())
 	case pbprotos.FieldDescriptorProto_TYPE_ENUM:
 		ed := fd.EnumDesc()
+
+		if ed == nil {
+			return fd.DefaultValue()
+		}
+
 		if ed.ValueCount() > 0 {
 
 			var defaultValue string
@@ -122,11 +136,12 @@ func printField(gen *Generator, fd *pbmeta.FieldDescriptor, msg *pbmeta.Descript
 	//  private int _Age = default(int);
 
 	if fd.IsRepeated() {
-		gen.Println("private readonly ", typeStr, " ", memberVar, " = new ", typeStr, "();")
+		gen.Println("readonly ", typeStr, " ", memberVar, " = new ", typeStr, "();")
 
 	} else {
 
-		gen.Println("private ", typeStr, " ", memberVar, " = ", getDefaultValue(fd), ";")
+		gen.Println(typeStr, " ", memberVar, " = ", getDefaultValue(fd), ";")
+		gen.Println("bool _has", fd.Name(), " = false;")
 
 	}
 
@@ -154,10 +169,24 @@ func printField(gen *Generator, fd *pbmeta.FieldDescriptor, msg *pbmeta.Descript
 	gen.Println("get { return ", memberVar, "; }")
 
 	if !fd.IsRepeated() {
-		gen.Println("set { ", memberVar, " = value; }")
+		gen.Println("set { ", memberVar, " = value; ")
+		gen.Println("      _has", fd.Name(), " = true;")
+		gen.Println("}")
 	}
 
 	gen.Out()
 	gen.Println("}")
+
+	gen.Println()
+
+	if !fd.IsRepeated() {
+		gen.Println("public bool Has", fd.Name())
+		gen.Println("{")
+		gen.In()
+		gen.Println("get { return _has", fd.Name(), "; }")
+		gen.Println("set { _has", fd.Name(), " = value; }")
+		gen.Out()
+		gen.Println("}")
+	}
 
 }
